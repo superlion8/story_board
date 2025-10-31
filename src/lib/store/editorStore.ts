@@ -1,3 +1,5 @@
+"use client";
+
 import { create } from "zustand";
 import { Frame, Transition } from "@/lib/types/story";
 
@@ -219,4 +221,3 @@ function syncTransitions(frames: Frame[], transitions: Transition[]): Transition
   }
   return mapped;
 }
- "use client";
