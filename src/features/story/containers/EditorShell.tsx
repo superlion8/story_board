@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { Timeline } from "@/features/timeline/Timeline";
-import { EditorTabs } from "@/features/story/components/EditorTabs";
+import { EditorWorkspace } from "@/features/story/components/EditorWorkspace";
 import { EditorHeader } from "@/features/story/components/EditorHeader";
 import { useEditorStore } from "@/lib/store/editorStore";
 import { toast } from "sonner";
@@ -71,12 +71,12 @@ export function EditorShell({ storyId, headerSlot }: EditorShellProps) {
         {headerSlot}
         <EditorHeader />
       </div>
-      <div className="grid flex-1 gap-6 lg:grid-cols-[minmax(320px,420px)_1fr]">
+      <div className="grid flex-1 gap-6 lg:grid-cols-[260px_1fr]">
         <aside className="rounded-3xl border border-neutral-100 bg-white p-5 shadow-sm">
           <Timeline />
         </aside>
         <section className="rounded-3xl border border-neutral-100 bg-white p-6 shadow-sm">
-          <EditorTabs />
+          <EditorWorkspace />
         </section>
       </div>
     </div>

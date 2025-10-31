@@ -44,7 +44,7 @@ npm run dev
 
 1. **数据接入**：将 `demoStories` 替换为 Supabase 数据；在 `storyClient` 中使用 React Query 调用真实 API，并添加乐观更新。
 2. **上传与生成**：整合 Uppy/tus 处理首帧上传，`PromptForm` 触达后端生成队列，通过轮询/Realtime 更新状态。
-3. **Kling 过渡**：`TransitionTab` 中补全 API 调用与状态流转，ready 状态后更新 `previewUrl`，在 `PreviewTab` 播放。
+3. **Kling 过渡**：`TransitionTab` 中补全 API 调用与状态流转，ready 状态后更新 `previewUrl`，在 Preview 面板播放。
 4. **渲染导出**：接入 FFmpeg 任务接口，更新 `/share/:id` 的播放源和下载链接。
 5. **样式细化**：根据品牌规范补齐动画、深色模式与响应式适配。
 

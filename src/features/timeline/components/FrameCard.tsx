@@ -1,9 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Trash2, MoveLeft, MoveRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Frame } from "@/lib/types/story";
 import { useEditorStore } from "@/lib/store/editorStore";
 
@@ -14,14 +12,10 @@ type FrameCardProps = {
 export function FrameCard({ frame }: FrameCardProps) {
   const selectFrame = useEditorStore((state) => state.selectFrame);
   const selectedFrameId = useEditorStore((state) => state.selectedFrameId);
-  const removeFrame = useEditorStore((state) => state.removeFrame);
-  const reorderFrame = useEditorStore((state) => state.reorderFrame);
-  const frames = useEditorStore((state) =>
-    state.frames.filter((item) => !item.id.startsWith("placeholder-"))
-  );
 
   const isSelected = selectedFrameId === frame.id;
   const isPlaceholder = frame.id.startsWith("placeholder-");
+  const hasThumbnail = Boolean(frame.asset.thumbnailUrl || frame.asset.url);
 
   if (isPlaceholder) {
     return (
@@ -29,8 +23,8 @@ export function FrameCard({ frame }: FrameCardProps) {
         type="button"
         onClick={() => selectFrame(frame.id)}
         className={cn(
-          "flex h-[140px] w-[160px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-500 transition hover:border-primary hover:text-primary",
-          isSelected && "border-primary bg-primary/10 text-primary"
+          "flex h-12 items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 bg-transparent text-sm font-medium text-neutral-500 transition hover:border-primary hover:text-primary",
+          isSelected && "border-primary text-primary"
         )}
       >
         + 添加帧
@@ -39,68 +33,37 @@ export function FrameCard({ frame }: FrameCardProps) {
   }
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={() => selectFrame(frame.id)}
       className={cn(
-        "flex w-[200px] flex-col gap-3 rounded-3xl border border-transparent p-3 transition hover:border-primary/40",
-        isSelected && "border-primary bg-primary/5 shadow"
+        "flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-primary/60",
+        isSelected && "border-primary bg-primary/5 text-primary"
       )}
     >
-      <button
-        type="button"
-        onClick={() => selectFrame(frame.id)}
-        className="flex flex-col gap-2"
-      >
-        <div className="relative h-28 w-full overflow-hidden rounded-2xl bg-neutral-100">
-          {frame.asset.thumbnailUrl ? (
-            <Image
-              src={frame.asset.thumbnailUrl}
-              alt={`Frame ${frame.order}`}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-neutral-400">
-              无缩略图
-            </div>
-          )}
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
+          {frame.order + 1}
         </div>
-        <div className="flex items-center justify-between text-xs text-neutral-500">
-          <span>Frame #{frame.order + 1}</span>
-          <span>{formatDuration(frame.durationMs)}</span>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">Frame</span>
+          <span className="text-xs text-neutral-500">
+            {hasThumbnail ? "点击预览" : "等待图像"}
+          </span>
         </div>
-      </button>
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => reorderFrame(frame.order, Math.max(frame.order - 1, 0))}
-            disabled={frame.order === 0}
-            aria-label="向左移动"
-          >
-            <MoveLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() =>
-              reorderFrame(frame.order, Math.min(frame.order + 1, frames.length - 1))
-            }
-            disabled={frame.order === frames.length - 1}
-            aria-label="向右移动"
-          >
-            <MoveRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => removeFrame(frame.id)}
-          aria-label="删除帧"
-        >
-          <Trash2 className="h-4 w-4 text-error" />
-        </Button>
       </div>
-    </div>
+      {hasThumbnail ? (
+        <div className="relative h-10 w-16 overflow-hidden rounded-xl bg-neutral-100">
+          <Image
+            src={frame.asset.thumbnailUrl || frame.asset.url}
+            alt={`Frame ${frame.order + 1}`}
+            fill
+            className="object-cover"
+          />
+        </div>
+      ) : (
+        <div className="h-10 w-16 rounded-xl border border-dashed border-neutral-300" />
+      )}
+    </button>
   );
 }

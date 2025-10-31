@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { FrameCard } from "@/features/timeline/components/FrameCard";
 import { TransitionCard } from "@/features/timeline/components/TransitionCard";
 import { useEditorStore } from "@/lib/store/editorStore";
@@ -8,27 +9,29 @@ export function Timeline() {
   const frames = useEditorStore((state) => state.frames);
   const transitions = useEditorStore((state) => state.transitions);
 
+  const orderedFrames = [...frames].sort((a, b) => a.order - b.order);
+
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">时间轴</h3>
+    <div className="flex h-full flex-col gap-6">
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold">序列</h3>
         <p className="text-sm text-neutral-500">
-          点击占位格添加新帧，生成过渡后可预览
+          左侧选择 Frame / Video，右侧区域即时预览与编辑。
         </p>
       </div>
-      <div className="flex flex-1 items-start justify-start gap-4 overflow-x-auto pb-6">
-        {frames.map((frame, index) => {
+      <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+        {orderedFrames.map((frame) => {
           const transition = transitions.find(
             (item) => item.fromFrameId === frame.id
           );
-          const isLast = index === frames.length - 1;
+
           return (
-            <div key={frame.id} className="flex items-start gap-4">
+            <Fragment key={frame.id}>
               <FrameCard frame={frame} />
-              {!isLast && transition ? (
+              {transition && !frame.id.startsWith("placeholder-") ? (
                 <TransitionCard transition={transition} />
               ) : null}
-            </div>
+            </Fragment>
           );
         })}
       </div>
