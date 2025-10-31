@@ -5,14 +5,13 @@ import { EditorShell } from "@/features/story/containers/EditorShell";
 import { Badge } from "@/components/ui/badge";
 import { formatDuration } from "@/lib/utils";
 
-type EditPageProps = {
-  params: {
-    id: string;
-  };
-};
-
-export default function StoryEditPage({ params }: EditPageProps) {
-  const story = demoStories.find((item) => item.id === params.id) ?? demoStories[0];
+export default async function StoryEditPage({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const story = demoStories.find((item) => item.id === id) ?? demoStories[0];
 
   if (!story) {
     notFound();

@@ -24,3 +24,6 @@
 .idea
 .vscode
 *.swp
+
+# build info
+tsconfig.tsbuildinfo

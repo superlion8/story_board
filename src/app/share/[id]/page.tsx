@@ -4,14 +4,13 @@ import { Button } from "@/components/ui/button";
 import { formatDuration, formatDateTime } from "@/lib/utils";
 import Link from "next/link";
 
-type SharePageProps = {
-  params: {
-    id: string;
-  };
-};
-
-export default function SharePage({ params }: SharePageProps) {
-  const story = demoStories.find((item) => item.id === params.id);
+export default async function SharePage({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const story = demoStories.find((item) => item.id === id);
 
   if (!story) {
     notFound();
