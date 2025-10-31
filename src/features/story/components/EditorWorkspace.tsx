@@ -6,6 +6,7 @@ import { useEditorStore } from "@/lib/store/editorStore";
 import { toast } from "sonner";
 import { ImageTab } from "@/features/story/components/ImageTab";
 import { TransitionTab } from "@/features/story/components/TransitionTab";
+import { AddFramePanel } from "@/features/story/components/AddFramePanel";
 
 type PreviewMode = "single" | "all";
 
@@ -22,6 +23,9 @@ export function EditorWorkspace() {
     (transition) => transition.id === selectedTransitionId
   );
 
+  const isPlaceholderSelected =
+    Boolean(selectedFrame?.id?.startsWith("placeholder-"));
+
   const [previewMode, setPreviewMode] = useState<PreviewMode>("single");
   const [showEditor, setShowEditor] = useState(false);
 
@@ -32,10 +36,10 @@ export function EditorWorkspace() {
   }, [selectedTransitionId]);
 
   useEffect(() => {
-    if (selectedFrame?.id.startsWith("placeholder-")) {
-      setShowEditor(true);
+    if (isPlaceholderSelected) {
+      setShowEditor(false);
     }
-  }, [selectedFrame?.id]);
+  }, [isPlaceholderSelected]);
 
   const hasSelection = Boolean(selectedFrame || selectedTransition);
   const hasMultiple =
@@ -79,7 +83,7 @@ export function EditorWorkspace() {
       );
     }
 
-    if (selectedFrame) {
+    if (selectedFrame && !isPlaceholderSelected) {
       if (selectedFrame.asset.url) {
         return (
           // eslint-disable-next-line @next/next/no-img-element
@@ -94,7 +98,7 @@ export function EditorWorkspace() {
       return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-sm text-neutral-500">
           <span>等待上传或生成图像</span>
-          <span>点击下方 Edit 按钮补充图像内容。</span>
+          <span>请使用编辑面板补充图像内容。</span>
         </div>
       );
     }
@@ -105,7 +109,7 @@ export function EditorWorkspace() {
         <span>新增帧后可继续扩展故事时间轴。</span>
       </div>
     );
-  }, [previewMode, selectedFrame, selectedTransition, selectionLabel]);
+  }, [previewMode, selectedFrame, selectedTransition, selectionLabel, isPlaceholderSelected]);
 
   const toggleEditor = () => {
     if (!selectedFrame && !selectedTransition) {
@@ -142,6 +146,20 @@ export function EditorWorkspace() {
   const primaryActionLabel = hasMultiple
     ? "Download Image/Video"
     : "Save Image/Video";
+
+  if (isPlaceholderSelected && selectedFrame) {
+    return (
+      <div className="flex h-full flex-col gap-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold">添加新帧</h2>
+          <p className="text-sm text-neutral-500">
+            选择上传图片或使用 AI 生成内容，以填充这一帧。
+          </p>
+        </div>
+        <AddFramePanel placeholderId={selectedFrame.id} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col gap-6">
@@ -184,11 +202,7 @@ export function EditorWorkspace() {
       </div>
       {showEditor ? (
         <div className="rounded-3xl border border-neutral-100 bg-white p-6 shadow-sm">
-          {selectedTransition ? (
-            <TransitionTab />
-          ) : (
-            <ImageTab />
-          )}
+          {selectedTransition ? <TransitionTab /> : <ImageTab />}
         </div>
       ) : null}
     </div>

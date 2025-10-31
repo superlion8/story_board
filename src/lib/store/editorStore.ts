@@ -8,7 +8,6 @@ type EditorState = {
   transitions: Transition[];
   selectedFrameId: string | null;
   selectedTransitionId: string | null;
-  addFrame: (payload: { assetUrl: string; thumbnailUrl?: string }) => void;
   updateFrame: (frameId: string, changes: Partial<Frame>) => void;
   removeFrame: (frameId: string) => void;
   reorderFrame: (sourceOrder: number, targetOrder: number) => void;
@@ -19,6 +18,14 @@ type EditorState = {
     changes: Partial<Omit<Transition, "id">>
   ) => void;
   queueTransition: (fromFrameId: string, toFrameId: string) => void;
+  confirmPlaceholder: (
+    placeholderId: string,
+    payload: {
+      assetUrl: string;
+      thumbnailUrl?: string;
+      metadata?: Record<string, unknown>;
+    }
+  ) => void;
   markNeedsRegenerate: (transitionId: string) => void;
 };
 
@@ -66,34 +73,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   transitions: [],
   selectedFrameId: "frame-1",
   selectedTransitionId: null,
-  addFrame: ({ assetUrl, thumbnailUrl }) =>
-    set((state) => {
-      const nonPlaceholder = state.frames.filter(
-        (frame) => !frame.id.startsWith("placeholder-")
-      );
-      const nextOrder = nonPlaceholder.length;
-      const newFrame: Frame = {
-        id: crypto.randomUUID(),
-        storyId: "local-preview",
-        order: nextOrder,
-        asset: {
-          type: "image",
-          url: assetUrl,
-          thumbnailUrl: thumbnailUrl ?? assetUrl
-        },
-        durationMs: PLACEHOLDER_DURATION,
-        status: "ready"
-      };
-      const updatedFrames = ensurePlaceholder(
-        [...nonPlaceholder, newFrame].sort((a, b) => a.order - b.order)
-      ).map((frame, index) => ({ ...frame, order: index }));
-      return {
-        frames: updatedFrames,
-        transitions: syncTransitions(updatedFrames, state.transitions),
-        selectedFrameId: newFrame.id,
-        selectedTransitionId: null
-      };
-    }),
   updateFrame: (frameId, changes) =>
     set((state) => ({
       frames: state.frames.map((frame) =>
@@ -185,6 +164,47 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         transitions: [...state.transitions, newTransition],
         selectedTransitionId: newTransition.id,
         selectedFrameId: null
+      };
+    }),
+  confirmPlaceholder: (placeholderId, payload) =>
+    set((state) => {
+      const index = state.frames.findIndex((frame) => frame.id === placeholderId);
+      if (index === -1) {
+        return state;
+      }
+
+      const placeholder = state.frames[index];
+      const newFrame: Frame = {
+        id: crypto.randomUUID(),
+        storyId: placeholder.storyId,
+        order: placeholder.order,
+        asset: {
+          type: "image",
+          url: payload.assetUrl,
+          thumbnailUrl: payload.thumbnailUrl ?? payload.assetUrl
+        },
+        durationMs: PLACEHOLDER_DURATION,
+        status: "ready",
+        metadata: {
+          ...placeholder.metadata,
+          ...payload.metadata
+        }
+      };
+
+      const frames = state.frames.map((frame, frameIndex) =>
+        frameIndex === index ? newFrame : frame
+      );
+
+      const normalized = ensurePlaceholder(frames).map((frame, frameIndex) => ({
+        ...frame,
+        order: frameIndex
+      }));
+
+      return {
+        frames: normalized,
+        transitions: syncTransitions(normalized, state.transitions),
+        selectedFrameId: newFrame.id,
+        selectedTransitionId: null
       };
     }),
   markNeedsRegenerate: (transitionId) =>
