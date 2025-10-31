@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { CloudUpload, ImagePlus } from "lucide-react";
 import { useDropzone } from "react-dropzone";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -11,18 +12,64 @@ type UploadedFile = {
   size: number;
 };
 
+const TARGET_EDITOR_ROUTE = "/story/story-1/edit?from=upload";
+
 export function UploadCard() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const router = useRouter();
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles(
-      acceptedFiles.map((file) => ({
-        name: file.name,
-        size: file.size
-      }))
-    );
-    toast.success("图片已上传，创建 Story 成功。");
+  const persistImage = useCallback(async (file: File) => {
+    const reader = new FileReader();
+
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      reader.onerror = () => reject(new Error("读取文件失败"));
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+        } else {
+          reject(new Error("无法解析图片数据"));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(
+        "story-board:pending-frame",
+        JSON.stringify({
+          image: dataUrl,
+          prompt: `Uploaded image: ${file.name}`,
+          source: "upload"
+        })
+      );
+    }
   }, []);
+
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (!acceptedFiles.length) {
+        return;
+      }
+
+      const file = acceptedFiles[0];
+      setFiles([
+        {
+          name: file.name,
+          size: file.size
+        }
+      ]);
+
+      try {
+        await persistImage(file);
+        toast.success("图片已上传，正在跳转编辑器。");
+        router.push(TARGET_EDITOR_ROUTE);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        toast.error(message);
+      }
+    },
+    [persistImage, router]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {

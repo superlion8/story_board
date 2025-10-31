@@ -32,7 +32,7 @@ type TransitionCardProps = {
 
 export function TransitionCard({ transition }: TransitionCardProps) {
   const selectTransition = useEditorStore((state) => state.selectTransition);
-  const queueTransition = useEditorStore((state) => state.queueTransition);
+  const markNeedsRegenerate = useEditorStore((state) => state.markNeedsRegenerate);
   const selectedTransitionId = useEditorStore(
     (state) => state.selectedTransitionId
   );
@@ -73,8 +73,8 @@ export function TransitionCard({ transition }: TransitionCardProps) {
           <Button
             variant="default"
             size="icon"
-            onClick={() => queueTransition(transition.fromFrameId, transition.toFrameId)}
-            aria-label="生成过渡"
+            onClick={() => selectTransition(transition.id)}
+            aria-label="去生成过渡"
           >
             <Sparkles className="h-4 w-4" />
           </Button>
@@ -88,7 +88,7 @@ export function TransitionCard({ transition }: TransitionCardProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => queueTransition(transition.fromFrameId, transition.toFrameId)}
+            onClick={() => markNeedsRegenerate(transition.id)}
             aria-label="重新生成"
           >
             <RefreshCcw className="h-4 w-4 text-primary" />

@@ -21,6 +21,15 @@ npm run dev
 
 项目默认监听 `http://localhost:3000`。若需要使用 `pnpm` 或 `yarn`，请将脚本命令替换为对应工具。
 
+### 环境变量
+
+以下变量需在本地 `.env.local` 或 Vercel Project Settings 中配置：
+
+- `GEMINI_API_KEY`：Google Gemini API key，用于调用 `gemini-2.5-flash` 生成首帧图像。
+- `KLING_ACCESS_KEY`：Kling 平台 Access Key，用于 JWT 鉴权。
+- `KLING_SECRET_KEY`：Kling 平台 Secret Key，与 Access Key 一起签名 JWT。
+- `KLING_API_BASE`（可选）：覆盖默认 `https://api-singapore.klingai.com` 的 API 域名。
+
 ### 代码结构
 
 | 目录 | 说明 |
@@ -52,4 +61,3 @@ npm run dev
 - 预览播放器为占位视图，等待 ffmpeg.wasm 或后端渲染结果接入。
 
 如需更多上下文，请参考同目录的 `spec.md` 与 `design.md`。
-

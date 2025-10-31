@@ -2,22 +2,67 @@
 
 import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
+const TARGET_EDITOR_ROUTE = "/story/story-1/edit?from=gemini";
+
 export function PromptForm() {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("电影感");
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!prompt.trim()) {
+      toast.error("请输入用于生成的 Prompt。");
+      return;
+    }
+
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    toast.success("首帧生成任务已提交，跳转到编辑器预览。");
+
+    try {
+      const combinedPrompt = style
+        ? `${prompt.trim()}，风格：${style.trim()}`
+        : prompt.trim();
+
+      const response = await fetch("/api/ai/image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ prompt: combinedPrompt })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "生成失败，请稍后再试。");
+      }
+
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(
+          "story-board:pending-frame",
+          JSON.stringify({
+            image: data.image,
+            prompt: combinedPrompt,
+            source: "gemini-2.5-flash"
+          })
+        );
+      }
+
+      toast.success("Gemini 生图任务已完成，正在跳转编辑器。");
+      router.push(TARGET_EDITOR_ROUTE);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

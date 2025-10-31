@@ -5,17 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useEditorStore } from "@/lib/store/editorStore";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export function TransitionTab() {
   const selectedTransitionId = useEditorStore((state) => state.selectedTransitionId);
   const transitions = useEditorStore((state) => state.transitions);
   const frames = useEditorStore((state) => state.frames);
   const updateTransition = useEditorStore((state) => state.updateTransition);
-  const queueTransition = useEditorStore((state) => state.queueTransition);
 
   const transition = transitions.find((item) => item.id === selectedTransitionId);
   const [prompt, setPrompt] = useState(transition?.prompt ?? "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setPrompt(transition?.prompt ?? "");
+  }, [transition?.prompt]);
 
   const startFrame = useMemo(
     () => frames.find((frame) => frame.id === transition?.fromFrameId),
@@ -25,6 +30,73 @@ export function TransitionTab() {
     () => frames.find((frame) => frame.id === transition?.toFrameId),
     [frames, transition?.toFrameId]
   );
+
+  const handleGenerate = async () => {
+    if (!transition || !startFrame || !endFrame) {
+      return;
+    }
+
+    if (!prompt.trim()) {
+      toast.error("请填写过渡 Prompt。");
+      return;
+    }
+
+    setIsSubmitting(true);
+    updateTransition(transition.id, {
+      prompt: prompt.trim(),
+      status: "running"
+    });
+
+    try {
+      const response = await fetch("/api/ai/transition", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          startImage: startFrame.asset.url,
+          endImage: endFrame.asset.url,
+          prompt: prompt.trim(),
+          duration: Math.round(transition.durationMs / 1000)
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "过渡生成失败，请稍后重试。");
+      }
+
+      const statusCandidate = typeof data.status === "string" ? data.status.toLowerCase() : "";
+      const normalizedStatus: typeof transition.status = [
+        "queued",
+        "running",
+        "ready"
+      ].includes(statusCandidate as typeof transition.status)
+        ? (statusCandidate as typeof transition.status)
+        : "queued";
+
+      updateTransition(transition.id, {
+        status: normalizedStatus,
+        taskId: data.taskId,
+        prompt: prompt.trim(),
+        previewUrl:
+          data.response?.video_url ??
+          data.response?.preview_url ??
+          data.response?.resource_url
+      });
+
+      toast.success("已提交 Kling 过渡生成任务。");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message);
+      updateTransition(transition.id, {
+        status: "failed"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!transition || !startFrame || !endFrame) {
     return (
@@ -85,13 +157,8 @@ export function TransitionTab() {
           >
             保存草稿
           </Button>
-          <Button
-            onClick={() => {
-              updateTransition(transition.id, { prompt });
-              queueTransition(transition.fromFrameId, transition.toFrameId);
-            }}
-          >
-            生成过渡
+          <Button disabled={isSubmitting} onClick={handleGenerate}>
+            {isSubmitting ? "生成中..." : "生成过渡"}
           </Button>
         </div>
       </div>

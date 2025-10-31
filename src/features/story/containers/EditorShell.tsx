@@ -1,9 +1,13 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Timeline } from "@/features/timeline/Timeline";
 import { EditorTabs } from "@/features/story/components/EditorTabs";
 import { EditorHeader } from "@/features/story/components/EditorHeader";
+import { useEditorStore } from "@/lib/store/editorStore";
+import { toast } from "sonner";
+
+const SESSION_KEY = "story-board:pending-frame";
 
 type EditorShellProps = {
   storyId: string;
@@ -11,6 +15,53 @@ type EditorShellProps = {
 };
 
 export function EditorShell({ storyId, headerSlot }: EditorShellProps) {
+  const updateFrame = useEditorStore((state) => state.updateFrame);
+  const selectFrame = useEditorStore((state) => state.selectFrame);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const data = JSON.parse(raw) as {
+        image?: string;
+        prompt?: string;
+        source?: string;
+      };
+
+      if (!data.image) {
+        throw new Error("缺少图像数据");
+      }
+
+      updateFrame("frame-1", {
+        asset: {
+          type: "image",
+          url: data.image,
+          thumbnailUrl: data.image
+        },
+        metadata: {
+          ...useEditorStore.getState().frames.find((frame) => frame.id === "frame-1")
+            ?.metadata,
+          prompt: data.prompt,
+          source: data.source
+        }
+      });
+      selectFrame("frame-1");
+      toast.success("已导入最新首帧，可继续扩展故事。");
+    } catch (error) {
+      console.error("Failed to hydrate frame from session:", error);
+      toast.error("导入首帧失败，请重试。");
+    } finally {
+      window.sessionStorage.removeItem(SESSION_KEY);
+    }
+  }, [storyId, selectFrame, updateFrame]);
+
   return (
     <div
       className="flex h-full min-h-screen flex-col gap-6 p-6 md:p-10"
