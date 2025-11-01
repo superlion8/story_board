@@ -70,7 +70,9 @@ export async function POST(request: Request) {
     };
 
     payload.image_base64 = startData.base64;
+    payload.image = startData.base64;
     payload.image_tail_base64 = endData.base64;
+    payload.image_tail = endData.base64;
 
     if (startData.mimeType) {
       payload.image_format = startData.mimeType;
