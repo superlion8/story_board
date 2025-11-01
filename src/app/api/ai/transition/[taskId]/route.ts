@@ -4,6 +4,7 @@ import { getEnv, getOptionalEnv } from "@/lib/env";
 
 const KLING_DEFAULT_BASE = "https://api-singapore.klingai.com";
 const KLING_TASK_PATHS = [
+  "/v1/videos/image2video/",
   "/v1/videos/tasks/",
   "/v1/queues/tasks/",
   "/v1/videos/task/"
