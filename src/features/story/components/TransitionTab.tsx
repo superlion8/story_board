@@ -17,6 +17,7 @@ export function TransitionTab() {
   const transition = transitions.find((item) => item.id === selectedTransitionId);
   const [prompt, setPrompt] = useState(transition?.prompt ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
 
   useEffect(() => {
     setPrompt(transition?.prompt ?? "");
@@ -98,6 +99,79 @@ export function TransitionTab() {
     }
   };
 
+  useEffect(() => {
+    if (!transition || !transition.taskId) {
+      return;
+    }
+
+    if (!["queued", "running"].includes(transition.status)) {
+      setIsPolling(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const resp = await fetch(`/api/ai/transition/${transition.taskId}`);
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.error ?? "查询任务状态失败");
+        }
+
+        if (cancelled) return;
+
+        const rawStatus =
+          data.task_status ??
+          data.status ??
+          data.taskStatus ??
+          data.result?.status ??
+          data.data?.task_status ??
+          data.data?.status ??
+          "";
+
+        const normalized = normalizeStatus(rawStatus);
+
+        const videoUrl =
+          data.video_url ??
+          data.preview_url ??
+          data.result?.video_url ??
+          data.result?.preview_url ??
+          data.data?.video_url ??
+          data.data?.preview_video ??
+          transition.previewUrl;
+
+        updateTransition(transition.id, {
+          status: normalized,
+          previewUrl: videoUrl ?? transition.previewUrl
+        });
+
+        if (normalized === "ready") {
+          setIsPolling(false);
+          toast.success("Kling 过渡已生成完成。");
+        } else if (normalized === "failed") {
+          setIsPolling(false);
+          toast.error("Kling 过渡生成失败。");
+        }
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : String(error);
+        toast.error(message);
+        updateTransition(transition.id, { status: "failed" });
+        setIsPolling(false);
+      }
+    };
+
+    setIsPolling(true);
+    poll();
+    const timer = setInterval(poll, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [transition, updateTransition]);
+
   if (!transition || !startFrame || !endFrame) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-12 text-neutral-500">
@@ -157,13 +231,38 @@ export function TransitionTab() {
           >
             保存草稿
           </Button>
-          <Button disabled={isSubmitting} onClick={handleGenerate}>
-            {isSubmitting ? "生成中..." : "生成过渡"}
+          <Button disabled={isSubmitting || isPolling} onClick={handleGenerate}>
+            {isSubmitting ? "生成中..." : isPolling ? "生成中..." : "生成过渡"}
           </Button>
         </div>
       </div>
     </div>
   );
+}
+
+function normalizeStatus(raw: string): ReturnType<typeof useEditorStore.getState>['transitions'][number]['status'] {
+  const value = raw?.toLowerCase?.() ?? "";
+  switch (value) {
+    case "success":
+    case "succeeded":
+    case "completed":
+    case "ready":
+      return "ready";
+    case "running":
+    case "processing":
+    case "in_progress":
+      return "running";
+    case "queued":
+    case "pending":
+    case "waiting":
+      return "queued";
+    case "failed":
+    case "error":
+    case "timeout":
+      return "failed";
+    default:
+      return "running";
+  }
 }
 
 type FramePreviewProps = {
