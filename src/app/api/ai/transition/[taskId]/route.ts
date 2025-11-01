@@ -52,11 +52,23 @@ export async function GET(_req: Request, context: RouteContext) {
         }
       });
       lastResponse = response;
-      const data = await response.json();
-      lastData = data;
+      const raw = await response.json();
+      lastData = raw;
 
       if (response.ok) {
-        return NextResponse.json(data);
+        const taskData = raw?.data ?? raw;
+        const normalized = normalizeStatus(taskData?.task_status ?? raw?.status ?? "");
+        const videoUrl =
+          taskData?.task_result?.videos?.[0]?.url ??
+          taskData?.video_url ??
+          raw?.video_url;
+
+        return NextResponse.json({
+          status: normalized,
+          task: taskData,
+          videoUrl,
+          raw
+        });
       }
 
       if (response.status === 404) {
@@ -64,7 +76,7 @@ export async function GET(_req: Request, context: RouteContext) {
       }
 
       return NextResponse.json(
-        { error: "Failed to query Kling task", details: data },
+        { error: "Failed to query Kling task", details: raw },
         { status: response.status }
       );
     }
@@ -85,5 +97,29 @@ export async function GET(_req: Request, context: RouteContext) {
       },
       { status: 500 }
     );
+  }
+}
+
+function normalizeStatus(raw: string) {
+  const value = raw?.toLowerCase?.() ?? "";
+  switch (value) {
+    case "succeed":
+    case "success":
+    case "completed":
+    case "ready":
+      return "ready";
+    case "processing":
+    case "running":
+    case "in_progress":
+      return "running";
+    case "submitted":
+    case "queued":
+    case "pending":
+      return "queued";
+    case "failed":
+    case "error":
+      return "failed";
+    default:
+      return "running";
   }
 }

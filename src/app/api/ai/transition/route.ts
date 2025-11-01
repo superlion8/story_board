@@ -90,19 +90,27 @@ export async function POST(request: Request) {
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    const klingData = await response.json();
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: "Kling API request failed", details: data },
+        { error: "Kling API request failed", details: klingData },
         { status: response.status }
       );
     }
 
+    const taskData = klingData?.data ?? klingData;
+    const taskStatus = taskData?.task_status ?? klingData?.status ?? "queued";
+
     return NextResponse.json({
-      taskId: data.task_id ?? data.taskId,
-      status: data.status ?? "queued",
-      response: data
+      status: taskStatus,
+      taskId:
+        taskData?.task_id ??
+        taskData?.taskId ??
+        klingData?.task_id ??
+        klingData?.taskId,
+      task: taskData,
+      response: klingData
     });
   } catch (error) {
     console.error("Kling transition generation failed:", error);

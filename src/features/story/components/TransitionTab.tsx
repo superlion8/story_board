@@ -68,30 +68,32 @@ export function TransitionTab() {
         throw new Error(data.error ?? "过渡生成失败，请稍后重试。");
       }
 
-      const statusCandidate = typeof data.status === "string" ? data.status.toLowerCase() : "";
-      const normalizedStatus: typeof transition.status = [
-        "queued",
-        "running",
-        "ready"
-      ].includes(statusCandidate as typeof transition.status)
-        ? (statusCandidate as typeof transition.status)
-        : "queued";
-
       const taskIdValue =
         data.taskId ??
-        data.task_id ??
-        data.response?.task_id ??
+        data.task?.task_id ??
+        data.task?.taskId ??
         data.response?.data?.task_id ??
-        data.response?.data?.taskId;
+        data.response?.data?.taskId ??
+        data.response?.task_id ??
+        data.response?.taskId;
+
+      const normalizedStatus: typeof transition.status = normalizeStatus(
+        data.status ?? data.task?.task_status ?? data.response?.data?.task_status ?? "queued"
+      ) as typeof transition.status;
+
+      const previewUrl =
+        data.videoUrl ??
+        data.task?.task_result?.videos?.[0]?.url ??
+        data.response?.data?.task_result?.videos?.[0]?.url ??
+        data.response?.video_url ??
+        data.response?.preview_url ??
+        data.response?.resource_url;
 
       updateTransition(transition.id, {
         status: normalizedStatus,
         taskId: taskIdValue,
         prompt: prompt.trim(),
-        previewUrl:
-          data.response?.video_url ??
-          data.response?.preview_url ??
-          data.response?.resource_url
+        previewUrl: previewUrl ?? transition.previewUrl
       });
 
       toast.success("已提交 Kling 过渡生成任务。");
@@ -121,31 +123,28 @@ export function TransitionTab() {
     const poll = async () => {
       try {
         const resp = await fetch(`/api/ai/transition/${transition.taskId}`);
-        const data = await resp.json();
+        const result = await resp.json();
         if (!resp.ok) {
-          throw new Error(data.error ?? "查询任务状态失败");
+          throw new Error(result.error ?? "查询任务状态失败");
         }
 
         if (cancelled) return;
 
         const rawStatus =
-          data.task_status ??
-          data.status ??
-          data.taskStatus ??
-          data.result?.status ??
-          data.data?.task_status ??
-          data.data?.status ??
+          result.status ??
+          result.task?.task_status ??
+          result.task_status ??
+          result.raw?.data?.task_status ??
+          result.raw?.task_status ??
           "";
 
         const normalized = normalizeStatus(rawStatus);
 
         const videoUrl =
-          data.video_url ??
-          data.preview_url ??
-          data.result?.video_url ??
-          data.result?.preview_url ??
-          data.data?.video_url ??
-          data.data?.preview_video ??
+          result.videoUrl ??
+          result.task?.task_result?.videos?.[0]?.url ??
+          result.raw?.data?.task_result?.videos?.[0]?.url ??
+          result.raw?.task_result?.videos?.[0]?.url ??
           transition.previewUrl;
 
         updateTransition(transition.id, {
