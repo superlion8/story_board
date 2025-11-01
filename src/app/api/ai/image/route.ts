@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getEnv } from "@/lib/env";
 
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-2.5-flash-image";
 
 type ImageRequestBody = {
   prompt?: string;
@@ -46,22 +46,37 @@ export async function POST(req: Request) {
 
     const result = await model.generateContent(generationRequest as any);
 
-    const inlinePart =
-      result.response?.candidates?.[0]?.content?.parts?.find(
-        (part) => "inlineData" in part
+    const parts =
+      result.response?.candidates?.[0]?.content?.parts ?? [];
+
+    const inlineDataPart = parts.find(
+      (part) => "inlineData" in part && part.inlineData?.data
+    ) as { inlineData?: { data: string; mimeType?: string } } | undefined;
+
+    const fileDataPart = parts.find(
+      (part) => "fileData" in part && part.fileData?.fileUri
+    ) as { fileData?: { fileUri: string; mimeType?: string } } | undefined;
+
+    let dataUrl: string | null = null;
+    let mimeType = "image/png";
+
+    if (inlineDataPart?.inlineData?.data) {
+      mimeType = inlineDataPart.inlineData.mimeType ?? mimeType;
+      dataUrl = `data:${mimeType};base64,${inlineDataPart.inlineData.data}`;
+    } else if (fileDataPart?.fileData?.fileUri) {
+      mimeType = fileDataPart.fileData.mimeType ?? mimeType;
+      dataUrl = await downloadFileAsDataUrl(
+        fileDataPart.fileData.fileUri,
+        mimeType
       );
+    }
 
-    const inlineData = inlinePart && "inlineData" in inlinePart ? inlinePart.inlineData : null;
-
-    if (!inlineData?.data) {
+    if (!dataUrl) {
       return NextResponse.json(
         { error: "Gemini did not return image data." },
         { status: 502 }
       );
     }
-
-    const mimeType = inlineData.mimeType ?? "image/png";
-    const dataUrl = `data:${mimeType};base64,${inlineData.data}`;
 
     return NextResponse.json({
       image: dataUrl,
@@ -80,4 +95,17 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+async function downloadFileAsDataUrl(fileUri: string, fallbackMime: string) {
+  const apiKey = getEnv("GEMINI_API_KEY");
+  const separator = fileUri.includes("?") ? "&" : "?";
+  const response = await fetch(`${fileUri}${separator}key=${apiKey}`);
+  if (!response.ok) {
+    throw new Error(`Failed to download generated image (${response.status})`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const mimeType =
+    response.headers.get("content-type") ?? fallbackMime ?? "image/png";
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
 }
