@@ -4,6 +4,9 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Frame } from "@/lib/types/story";
 import { useEditorStore } from "@/lib/store/editorStore";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 
 type FrameCardProps = {
   frame: Frame;
@@ -16,6 +19,23 @@ export function FrameCard({ frame }: FrameCardProps) {
   const isSelected = selectedFrameId === frame.id;
   const isPlaceholder = frame.id.startsWith("placeholder-");
   const hasThumbnail = Boolean(frame.asset.thumbnailUrl || frame.asset.url);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: frame.id,
+    disabled: isPlaceholder,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   if (isPlaceholder) {
     return (
@@ -33,43 +53,59 @@ export function FrameCard({ frame }: FrameCardProps) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => selectFrame(frame.id)}
+    <div
+      ref={setNodeRef}
+      style={style}
       className={cn(
-        "flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-primary/60",
-        isSelected && "border-primary bg-primary/5 text-primary"
+        "group relative",
+        isDragging && "z-50 opacity-50"
       )}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
-          {frame.order + 1}
+      <button
+        type="button"
+        onClick={() => selectFrame(frame.id)}
+        className={cn(
+          "flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-primary/60",
+          isSelected && "border-primary bg-primary/5 text-primary"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing touch-none"
+          >
+            <GripVertical className="h-5 w-5 text-neutral-400 opacity-0 transition group-hover:opacity-100" />
+          </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
+            {frame.order + 1}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">Frame</span>
+            <span className="text-xs text-neutral-500">
+              {hasThumbnail ? "点击预览" : "等待图像"}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-medium">Frame</span>
-          <span className="text-xs text-neutral-500">
-            {hasThumbnail ? "点击预览" : "等待图像"}
-          </span>
-        </div>
-      </div>
-      {hasThumbnail ? (
-        <div
-          className="relative w-20 overflow-hidden rounded-xl bg-neutral-100"
-          style={{ aspectRatio: "16 / 9" }}
-        >
-          <Image
-            src={frame.asset.thumbnailUrl || frame.asset.url}
-            alt={`Frame ${frame.order + 1}`}
-            fill
-            className="object-cover"
+        {hasThumbnail ? (
+          <div
+            className="relative w-20 overflow-hidden rounded-xl bg-neutral-100"
+            style={{ aspectRatio: "16 / 9" }}
+          >
+            <Image
+              src={frame.asset.thumbnailUrl || frame.asset.url}
+              alt={`Frame ${frame.order + 1}`}
+              fill
+              className="object-cover"
+            />
+          </div>
+        ) : (
+          <div
+            className="w-20 rounded-xl border border-dashed border-neutral-300"
+            style={{ aspectRatio: "16 / 9" }}
           />
-        </div>
-      ) : (
-        <div
-          className="w-20 rounded-xl border border-dashed border-neutral-300"
-          style={{ aspectRatio: "16 / 9" }}
-        />
-      )}
-    </button>
+        )}
+      </button>
+    </div>
   );
 }

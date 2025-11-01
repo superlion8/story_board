@@ -1,12 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Sparkles, Loader2, ImagePlus, X } from "lucide-react";
+import { Sparkles, Loader2, ImagePlus, X, Lightbulb } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { promptExamples, categoryNames } from "@/lib/constants/promptExamples";
 
 const TARGET_EDITOR_ROUTE = "/story/story-1/edit?from=gemini";
 
@@ -15,6 +16,7 @@ export function PromptForm() {
   const [style, setStyle] = useState("电影感");
   const [isLoading, setIsLoading] = useState(false);
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [showExamples, setShowExamples] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
@@ -77,11 +79,65 @@ export function PromptForm() {
       className="flex h-full flex-col gap-4 rounded-3xl border border-neutral-100 bg-white p-6 shadow-sm"
     >
       <h2 className="text-xl font-semibold">Prompt 生成首帧</h2>
+      
+      {/* Example prompts toggle */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setShowExamples(!showExamples)}
+        className="gap-2 self-start"
+      >
+        <Lightbulb className="h-4 w-4" />
+        {showExamples ? "隐藏" : "查看"}示例 Prompts
+      </Button>
+
+      {/* Example prompts grid */}
+      {showExamples && (
+        <div className="max-h-64 space-y-3 overflow-y-auto rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+          {Object.entries(categoryNames).map(([category, label]) => {
+            const categoryExamples = promptExamples.filter(
+              (ex) => ex.category === category
+            );
+            if (categoryExamples.length === 0) return null;
+            
+            return (
+              <div key={category}>
+                <p className="mb-2 text-xs font-medium text-neutral-500">
+                  {label}
+                </p>
+                <div className="grid gap-2">
+                  {categoryExamples.map((example) => (
+                    <button
+                      key={example.id}
+                      type="button"
+                      onClick={() => {
+                        setPrompt(example.prompt);
+                        setShowExamples(false);
+                      }}
+                      className="rounded-xl border border-neutral-200 bg-white p-3 text-left transition hover:border-primary hover:bg-primary/5"
+                    >
+                      <p className="text-sm font-medium text-neutral-900">
+                        {example.title}
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        {example.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      
       <Textarea
         required
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
         placeholder="描述你想要的故事开场，例如：辽阔的火星荒原，日落时分的探险队。"
+        rows={5}
       />
       <div>
         <label className="mb-2 block text-sm text-neutral-600">风格预设</label>

@@ -2,13 +2,27 @@
 
 Story Board 是一个基于 Next.js 15 构建的时间轴式多帧故事编辑工具原型，实现了从创建首帧、时间轴编辑、过渡生成到分享页的核心前端体验。代码根据 `spec.md` 与 `design.md` 的约定落地，采用 App Router、Tailwind、shadcn 风格组件与 Zustand 本地状态管理。
 
+## ✨ 最新优化（v0.2.0）
+
+### 核心体验改进
+- 🎯 **拖拽排序**：使用 @dnd-kit 实现时间轴帧的直观拖拽重排
+- ⌨️ **键盘快捷键**：支持 ↑↓ 导航、Delete 删除、Esc 取消选择等快捷操作
+- ⏳ **实时进度反馈**：过渡生成显示进度条和预估时间
+- 🎓 **新手引导**：首次使用时的交互式 6 步引导流程
+- ✨ **预设模板**：12 个专业过渡效果预设，一键应用
+- 💡 **示例 Prompts**：8 个精选 prompt 示例，降低创作门槛
+- 🛡️ **错误边界**：统一的错误处理和友好的错误提示
+- 🎴 **增强卡片**：列表卡片支持悬停预览和快速操作菜单
+
+详细优化内容请查看 [OPTIMIZATION_SUMMARY.md](./OPTIMIZATION_SUMMARY.md)
+
 ## 功能概览
 
-- `/create`：支持 prompt 生成或上传首帧的入口页面，模拟任务提交与断点上传逻辑。
-- `/story`：Story 列表视图，包含筛选、搜索、卡片操作等。
-- `/story/:id/edit`：主编辑器，左侧时间轴、右侧多 Tab 面板（Image / Transition / Preview / Properties），内置帧增删、排序与过渡状态管理的 Zustand Store。
+- `/create`：支持 prompt 生成或上传首帧的入口页面，内置示例 prompts 和参考图上传。
+- `/story`：Story 列表视图，包含筛选、搜索、卡片操作等，优化的悬停效果和快速操作。
+- `/story/:id/edit`：主编辑器，左侧时间轴（支持拖拽排序）、右侧多 Tab 面板（Image / Transition / Preview / Properties），内置帧增删、排序与过渡状态管理的 Zustand Store。
 - `/share/:id`：最终视频播放分享页的结构展示。
-- 全局 Providers：React Query、Sonner 通知、UI token 方案、示例数据。
+- 全局 Providers：React Query、Sonner 通知、错误边界、UI token 方案、示例数据。
 
 所有数据目前使用 `src/lib/mock-data.ts` 中的静态样例，方便后续对接 Supabase API 与 Kling 任务队列。
 
@@ -54,10 +68,25 @@ npm run dev
 - 手动测试：在 `/story/story-1/edit` 中尝试点击占位帧添加新帧、进入 Transition Tab 填写 prompt，观察状态标签变化。
 - 组件快照：建议后续集成 Playwright/Storybook 以验证关键交互与布局。
 
+## ⌨️ 键盘快捷键
+
+在编辑器中使用以下快捷键提高效率：
+
+- `↑` / `↓` - 上下选择帧
+- `Delete` / `Backspace` - 删除选中的帧
+- `Esc` - 取消选择
+- `Ctrl/Cmd + Z` - 撤销（即将推出）
+- `Ctrl/Cmd + D` - 复制帧（即将推出）
+- `Ctrl/Cmd + A` - 全选（即将推出）
+
 ## 已知待补充点
 
-- 上传、生成、渲染均为模拟状态，需接入真实后端。
-- 未实现拖拽排序，当前使用左右按钮调整顺序。
-- 预览播放器为占位视图，等待 ffmpeg.wasm 或后端渲染结果接入。
+- ✅ ~~拖拽排序~~ - 已完成
+- ✅ ~~键盘快捷键~~ - 已完成
+- ✅ ~~新手引导~~ - 已完成
+- ✅ ~~预设模板~~ - 已完成
+- 🔄 上传、生成、渲染均为模拟状态，需接入真实后端。
+- 🔄 预览播放器为占位视图，等待 ffmpeg.wasm 或后端渲染结果接入。
+- 🔄 批量操作功能（多选、批量删除）待实现。
 
-如需更多上下文，请参考同目录的 `spec.md` 与 `design.md`。
+如需更多上下文，请参考同目录的 `spec.md`、`design.md` 和 `OPTIMIZATION_SUMMARY.md`。

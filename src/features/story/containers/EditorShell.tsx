@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { Timeline } from "@/features/timeline/Timeline";
 import { EditorWorkspace } from "@/features/story/components/EditorWorkspace";
 import { useEditorStore } from "@/lib/store/editorStore";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { toast } from "sonner";
 
 const SESSION_KEY = "story-board:pending-frame";
@@ -15,6 +17,9 @@ type EditorShellProps = {
 export function EditorShell({ storyId }: EditorShellProps) {
   const updateFrame = useEditorStore((state) => state.updateFrame);
   const selectFrame = useEditorStore((state) => state.selectFrame);
+  
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -61,18 +66,21 @@ export function EditorShell({ storyId }: EditorShellProps) {
   }, [storyId, selectFrame, updateFrame]);
 
   return (
-    <div
-      className="flex h-full min-h-screen flex-col gap-6 p-6 md:p-10"
-      data-story-id={storyId}
-    >
-      <div className="grid flex-1 gap-6 lg:grid-cols-[260px_1fr]">
-        <aside className="rounded-3xl border border-neutral-100 bg-white p-5 shadow-sm">
-          <Timeline />
-        </aside>
-        <section className="rounded-3xl border border-neutral-100 bg-white p-6 shadow-sm">
-          <EditorWorkspace />
-        </section>
+    <>
+      <OnboardingTour />
+      <div
+        className="flex h-full min-h-screen flex-col gap-6 p-6 md:p-10"
+        data-story-id={storyId}
+      >
+        <div className="grid flex-1 gap-6 lg:grid-cols-[260px_1fr]">
+          <aside className="rounded-3xl border border-neutral-100 bg-white p-5 shadow-sm">
+            <Timeline />
+          </aside>
+          <section className="rounded-3xl border border-neutral-100 bg-white p-6 shadow-sm">
+            <EditorWorkspace />
+          </section>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

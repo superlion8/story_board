@@ -7,6 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { useEditorStore } from "@/lib/store/editorStore";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+  transitionPresets,
+  categoryNames,
+  type TransitionPreset,
+} from "@/lib/constants/transitionPresets";
+import { Sparkles } from "lucide-react";
 
 export function TransitionTab() {
   const selectedTransitionId = useEditorStore((state) => state.selectedTransitionId);
@@ -201,31 +207,67 @@ export function TransitionTab() {
         </div>
       </div>
       <div className="space-y-4">
+        {/* Preset Templates */}
+        <div>
+          <label className="mb-3 flex items-center gap-2 text-sm font-medium text-neutral-600">
+            <Sparkles className="h-4 w-4" />
+            快速选择预设效果
+          </label>
+          <div className="space-y-3">
+            {Object.entries(categoryNames).map(([category, label]) => {
+              const categoryPresets = transitionPresets.filter(
+                (p) => p.category === category
+              );
+              return (
+                <div key={category}>
+                  <p className="mb-2 text-xs font-medium text-neutral-500">
+                    {label}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {categoryPresets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setPrompt(preset.prompt)}
+                        className="flex items-start gap-2 rounded-xl border border-neutral-200 bg-white p-3 text-left transition hover:border-primary hover:bg-primary/5"
+                      >
+                        <span className="text-xl">{preset.icon}</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-neutral-900">
+                            {preset.name}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {preset.description}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-x-0 flex items-center">
+            <div className="w-full border-t border-neutral-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-2 text-neutral-500">或自定义</span>
+          </div>
+        </div>
+
         <div>
           <label className="mb-2 block text-sm font-medium text-neutral-600">
-            过渡 Prompt
+            自定义 Prompt
           </label>
           <Textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
             placeholder="例如：A cinematic drone fly-through that bridges the cyberpunk skyline to the lush jungle."
+            rows={4}
           />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {["电影感", "慢门", "快节奏", "手持摇镜"].map((preset) => (
-            <Badge
-              key={preset}
-              variant={prompt.includes(preset) ? "default" : "muted"}
-              className="cursor-pointer"
-              onClick={() =>
-                setPrompt((prev) =>
-                  prev.includes(preset) ? prev : prev ? `${prev}，${preset}` : preset
-                )
-              }
-            >
-              {preset}
-            </Badge>
-          ))}
         </div>
         <div className="flex items-center justify-between gap-3">
           <Button
