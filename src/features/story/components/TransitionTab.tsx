@@ -77,9 +77,16 @@ export function TransitionTab() {
         ? (statusCandidate as typeof transition.status)
         : "queued";
 
+      const taskIdValue =
+        data.taskId ??
+        data.task_id ??
+        data.response?.task_id ??
+        data.response?.data?.task_id ??
+        data.response?.data?.taskId;
+
       updateTransition(transition.id, {
         status: normalizedStatus,
-        taskId: data.taskId,
+        taskId: taskIdValue,
         prompt: prompt.trim(),
         previewUrl:
           data.response?.video_url ??
