@@ -20,12 +20,13 @@ function createKlingToken() {
   );
 }
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { taskId: string } }
-) {
+type RouteContext = {
+  params: Promise<{ taskId: string }>;
+};
+
+export async function GET(_req: Request, context: RouteContext) {
   try {
-    const taskId = params.taskId;
+    const { taskId } = await context.params;
     if (!taskId) {
       return NextResponse.json(
         { error: "taskId is required" },
