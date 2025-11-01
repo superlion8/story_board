@@ -156,9 +156,11 @@ export function TransitionTab() {
         if (normalized === "ready") {
           setIsPolling(false);
           toast.success("Kling 过渡已生成完成。");
+          return;
         } else if (normalized === "failed") {
           setIsPolling(false);
           toast.error("Kling 过渡生成失败。");
+          return;
         }
       } catch (error) {
         if (cancelled) return;
