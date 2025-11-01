@@ -3,6 +3,11 @@ import jwt from "jsonwebtoken";
 import { getEnv, getOptionalEnv } from "@/lib/env";
 
 const KLING_DEFAULT_BASE = "https://api-singapore.klingai.com";
+const KLING_TASK_PATHS = [
+  "/v1/videos/tasks/",
+  "/v1/queues/tasks/",
+  "/v1/videos/task/"
+];
 
 function createKlingToken() {
   const accessKey = getEnv("KLING_ACCESS_KEY");
@@ -35,22 +40,41 @@ export async function GET(_req: Request, context: RouteContext) {
     }
 
     const baseUrl = getOptionalEnv("KLING_API_BASE") ?? KLING_DEFAULT_BASE;
-    const response = await fetch(`${baseUrl}/v1/videos/tasks/${taskId}`, {
-      headers: {
-        Authorization: `Bearer ${createKlingToken()}`
+    const token = createKlingToken();
+    let lastResponse: Response | null = null;
+    let lastData: unknown = null;
+
+    for (const path of KLING_TASK_PATHS) {
+      const response = await fetch(`${baseUrl}${path}${taskId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      lastResponse = response;
+      const data = await response.json();
+      lastData = data;
+
+      if (response.ok) {
+        return NextResponse.json(data);
       }
-    });
 
-    const data = await response.json();
+      if (response.status === 404) {
+        continue;
+      }
 
-    if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to query Kling task", details: data },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(
+      {
+        error: "Task not found in Kling queues",
+        details: lastData ?? null
+      },
+      { status: lastResponse?.status ?? 404 }
+    );
   } catch (error) {
     console.error("Kling task query failed:", error);
     return NextResponse.json(
