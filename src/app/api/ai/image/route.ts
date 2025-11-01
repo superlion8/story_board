@@ -7,6 +7,7 @@ const MODEL_NAME = "gemini-2.5-flash-image";
 type ImageRequestBody = {
   prompt?: string;
   aspectRatio?: string;
+  referenceImage?: string;
 };
 
 export async function POST(req: Request) {
@@ -31,11 +32,28 @@ export async function POST(req: Request) {
           }
         : undefined;
 
+    const parts: Array<Record<string, unknown>> = [];
+
+    if (body.referenceImage) {
+      const inlineData = parseDataUrl(body.referenceImage);
+      if (!inlineData) {
+        return NextResponse.json(
+          { error: "Reference image must be a valid base64 data URL." },
+          { status: 400 }
+        );
+      }
+      parts.push({
+        inlineData
+      });
+    }
+
+    parts.push({ text: prompt });
+
     const generationRequest: Record<string, unknown> = {
       contents: [
         {
           role: "user",
-          parts: [{ text: prompt }]
+          parts
         }
       ]
     };
@@ -46,16 +64,17 @@ export async function POST(req: Request) {
 
     const result = await model.generateContent(generationRequest as any);
 
-    const parts =
-      result.response?.candidates?.[0]?.content?.parts ?? [];
+    const responseParts = (result.response?.candidates?.[0]?.content?.parts ?? []) as Array<
+      Record<string, any>
+    >;
 
-    const inlineDataPart = parts.find(
-      (part) => "inlineData" in part && part.inlineData?.data
-    ) as { inlineData?: { data: string; mimeType?: string } } | undefined;
+    const inlineDataPart = responseParts.find(
+      (part) => part.inlineData?.data
+    ) as { inlineData?: { data?: string; mimeType?: string } } | undefined;
 
-    const fileDataPart = parts.find(
-      (part) => "fileData" in part && part.fileData?.fileUri
-    ) as { fileData?: { fileUri: string; mimeType?: string } } | undefined;
+    const fileDataPart = responseParts.find(
+      (part) => part.fileData?.fileUri
+    ) as { fileData?: { fileUri?: string; mimeType?: string } } | undefined;
 
     let dataUrl: string | null = null;
     let mimeType = "image/png";
@@ -108,4 +127,18 @@ async function downloadFileAsDataUrl(fileUri: string, fallbackMime: string) {
   const mimeType =
     response.headers.get("content-type") ?? fallbackMime ?? "image/png";
   return `data:${mimeType};base64,${buffer.toString("base64")}`;
+}
+
+function parseDataUrl(value: string) {
+  if (!value.startsWith("data:")) {
+    return null;
+  }
+  const match = value.match(/^data:(?<mime>[^;]+);base64,(?<data>.+)$/);
+  if (!match?.groups?.data) {
+    return null;
+  }
+  return {
+    mimeType: match.groups.mime || "image/png",
+    data: match.groups.data
+  };
 }

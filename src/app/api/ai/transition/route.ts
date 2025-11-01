@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import path from "path";
+import { readFile } from "fs/promises";
 import { getEnv, getOptionalEnv } from "@/lib/env";
 
 const KLING_MODEL = "kling-v2-1";
@@ -54,8 +56,8 @@ export async function POST(request: Request) {
     const cfgScale = body.cfgScale ?? 0.5;
     const baseUrl = getOptionalEnv("KLING_API_BASE") ?? KLING_DEFAULT_BASE;
 
-    const startImageBase64 = extractBase64(startImage);
-    const endImageBase64 = extractBase64(endImage);
+    const startData = await resolveImageData(startImage);
+    const endData = await resolveImageData(endImage);
 
     const payload: Record<string, unknown> = {
       model_name: KLING_MODEL,
@@ -67,16 +69,14 @@ export async function POST(request: Request) {
       dynamic_masks: body.dynamicMasks
     };
 
-    if (startImageBase64) {
-      payload.image_base64 = startImageBase64;
-    } else {
-      payload.image = startImage;
-    }
+    payload.image_base64 = startData.base64;
+    payload.image_tail_base64 = endData.base64;
 
-    if (endImageBase64) {
-      payload.image_tail_base64 = endImageBase64;
-    } else {
-      payload.image_tail = endImage;
+    if (startData.mimeType) {
+      payload.image_format = startData.mimeType;
+    }
+    if (endData.mimeType) {
+      payload.image_tail_format = endData.mimeType;
     }
 
     const response = await fetch(`${baseUrl}/v1/videos/image2video`, {
@@ -116,10 +116,57 @@ export async function POST(request: Request) {
 
 function extractBase64(value: string) {
   if (value.startsWith("data:")) {
-    const commaIndex = value.indexOf(",");
-    if (commaIndex !== -1) {
-      return value.slice(commaIndex + 1);
+    const match = value.match(/^data:(?<mime>[^;]+);base64,(?<data>.+)$/);
+    if (match?.groups?.data) {
+      return {
+        data: match.groups.data,
+        mimeType: match.groups.mime ?? undefined
+      };
     }
   }
   return null;
+}
+
+async function resolveImageData(value: string) {
+  const dataUrl = extractBase64(value);
+  if (dataUrl) {
+    return { base64: dataUrl.data, mimeType: dataUrl.mimeType };
+  }
+
+  if (value.startsWith("http")) {
+    const res = await fetch(value);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch image ${value} (${res.status})`);
+    }
+    const buffer = Buffer.from(await res.arrayBuffer());
+    return {
+      base64: buffer.toString("base64"),
+      mimeType: res.headers.get("content-type") ?? undefined
+    };
+  }
+
+  const relativePath = value.startsWith("/") ? value.slice(1) : value;
+  const absolute = path.join(process.cwd(), "public", relativePath);
+  const buffer = await readFile(absolute);
+  return {
+    base64: buffer.toString("base64"),
+    mimeType: guessMimeType(relativePath)
+  };
+}
+
+function guessMimeType(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".webp":
+      return "image/webp";
+    case ".svg":
+      return "image/svg+xml";
+    default:
+      return undefined;
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Sparkles, Loader2, ImagePlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,8 @@ export function PromptForm() {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("电影感");
   const [isLoading, setIsLoading] = useState(false);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +37,10 @@ export function PromptForm() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ prompt: combinedPrompt })
+        body: JSON.stringify({
+          prompt: combinedPrompt,
+          referenceImage
+        })
       });
 
       const data = await response.json();
@@ -50,7 +55,8 @@ export function PromptForm() {
           JSON.stringify({
             image: data.image,
             prompt: combinedPrompt,
-            source: "gemini-2.5-flash"
+            source: "gemini-2.5-flash-image",
+            referenceImage
           })
         );
       }
@@ -83,6 +89,56 @@ export function PromptForm() {
           value={style}
           onChange={(event) => setStyle(event.target.value)}
           placeholder="如：电影感、赛博朋克、手绘"
+        />
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-neutral-600">参考图（可选）</span>
+          {referenceImage ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-xs"
+              onClick={() => setReferenceImage(null)}
+            >
+              <X className="h-3 w-3" />
+              移除
+            </Button>
+          ) : null}
+        </div>
+        {referenceImage ? (
+          <div className="relative h-40 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={referenceImage} alt="参考图" className="h-full w-full object-cover" />
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            className="flex items-center gap-2"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImagePlus className="h-4 w-4 text-primary" />
+            上传参考图
+          </Button>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              if (typeof reader.result === "string") {
+                setReferenceImage(reader.result);
+              }
+            };
+            reader.readAsDataURL(file);
+          }}
         />
       </div>
       <Button type="submit" disabled={isLoading} className="gap-2">

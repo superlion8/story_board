@@ -41,6 +41,12 @@ export function EditorWorkspace() {
     }
   }, [isPlaceholderSelected]);
 
+  useEffect(() => {
+    if (selectedTransition && !selectedTransition.previewUrl) {
+      setShowEditor(true);
+    }
+  }, [selectedTransition]);
+
   const hasSelection = Boolean(selectedFrame || selectedTransition);
   const hasMultiple =
     frames.filter((frame) => !frame.id.startsWith("placeholder-")).length +

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditorStore } from "@/lib/store/editorStore";
 import { toast } from "sonner";
+import { ImagePlus, X } from "lucide-react";
 
 export function ImageTab() {
   const selectedFrameId = useEditorStore((state) => state.selectedFrameId);
@@ -18,10 +19,15 @@ export function ImageTab() {
   const [isReplacing, setIsReplacing] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const referenceInputRef = useRef<HTMLInputElement | null>(null);
+  const [referenceImage, setReferenceImage] = useState<string | null>(
+    (frame?.metadata?.referenceImage as string) ?? null
+  );
 
   useEffect(() => {
     setNote((frame?.metadata?.prompt as string) ?? "");
-  }, [frame?.id, frame?.metadata?.prompt]);
+    setReferenceImage((frame?.metadata?.referenceImage as string) ?? null);
+  }, [frame?.id, frame?.metadata?.prompt, frame?.metadata?.referenceImage]);
 
   if (!frame) {
     return (
@@ -81,7 +87,10 @@ export function ImageTab() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ prompt: note.trim() })
+        body: JSON.stringify({
+          prompt: note.trim(),
+          referenceImage
+        })
       });
       const data = await response.json();
       if (!response.ok) {
@@ -96,7 +105,8 @@ export function ImageTab() {
         metadata: {
           ...frame.metadata,
           prompt: note.trim(),
-          source: "gemini-2.5-flash"
+          source: "gemini-2.5-flash-image",
+          referenceImage
         }
       });
       toast.success("AI 生成完成，已替换当前帧。");
@@ -158,6 +168,62 @@ export function ImageTab() {
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder="记录该帧的生成提示词或备注，方便下次复用。"
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-neutral-600">参考图（可选）</span>
+            {referenceImage ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={() => setReferenceImage(null)}
+              >
+                <X className="h-3 w-3" />
+                移除
+              </Button>
+            ) : null}
+          </div>
+          {referenceImage ? (
+            <div className="relative h-36 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={referenceImage} alt="参考图" className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="flex items-center gap-2"
+              onClick={() => referenceInputRef.current?.click()}
+            >
+              <ImagePlus className="h-4 w-4 text-primary" />
+              上传参考图
+            </Button>
+          )}
+          <input
+            ref={referenceInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              try {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  if (typeof reader.result === "string") {
+                    setReferenceImage(reader.result);
+                  }
+                };
+                reader.readAsDataURL(file);
+              } catch (error) {
+                const message =
+                  error instanceof Error ? error.message : String(error);
+                toast.error(message);
+              }
+            }}
           />
         </div>
         <div className="flex justify-end">

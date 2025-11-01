@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Sparkles, Upload, Loader2 } from "lucide-react";
+import { Sparkles, Upload, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditorStore } from "@/lib/store/editorStore";
@@ -14,9 +14,11 @@ type AddFramePanelProps = {
 export function AddFramePanel({ placeholderId }: AddFramePanelProps) {
   const confirmPlaceholder = useEditorStore((state) => state.confirmPlaceholder);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const aiFileInputRef = useRef<HTMLInputElement | null>(null);
   const [prompt, setPrompt] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
 
   const readFileAsDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -75,7 +77,10 @@ export function AddFramePanel({ placeholderId }: AddFramePanelProps) {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ prompt: prompt.trim() })
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          referenceImage
+        })
       });
       const data = await response.json();
       if (!response.ok) {
@@ -85,12 +90,14 @@ export function AddFramePanel({ placeholderId }: AddFramePanelProps) {
       confirmPlaceholder(placeholderId, {
         assetUrl: data.image,
         metadata: {
-          source: "gemini-2.5-flash",
-          prompt: prompt.trim()
+          source: "gemini-2.5-flash-image",
+          prompt: prompt.trim(),
+          referenceImage
         }
       });
       toast.success("AI 生成完成，已填充新帧。");
       setPrompt("");
+      setReferenceImage(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       toast.error(message);
@@ -137,6 +144,57 @@ export function AddFramePanel({ placeholderId }: AddFramePanelProps) {
           placeholder="例如：日落时分的城市天际线，暖色调，航拍镜头。"
           className="mt-4"
         />
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-neutral-600">参考图（可选）</span>
+            {referenceImage ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1 text-xs"
+                onClick={() => setReferenceImage(null)}
+              >
+                <X className="h-3 w-3" />
+                移除
+              </Button>
+            ) : null}
+          </div>
+          {referenceImage ? (
+            <div className="relative h-36 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={referenceImage} alt="参考图" className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="flex items-center gap-2"
+              onClick={() => aiFileInputRef.current?.click()}
+            >
+              <ImagePlus className="h-4 w-4 text-primary" />
+              上传参考图
+            </Button>
+          )}
+          <input
+            ref={aiFileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              try {
+                const dataUrl = await readFileAsDataUrl(file);
+                setReferenceImage(dataUrl);
+              } catch (error) {
+                const message =
+                  error instanceof Error ? error.message : String(error);
+                toast.error(message);
+              }
+            }}
+          />
+        </div>
         <Button
           variant="secondary"
           className="mt-4 flex items-center gap-2"
