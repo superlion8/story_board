@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { FrameCard } from "@/features/timeline/components/FrameCard";
 import { TransitionCard } from "@/features/timeline/components/TransitionCard";
 import { useEditorStore } from "@/lib/store/editorStore";
+import { TransitionPlaceholderCard } from "@/features/timeline/components/TransitionPlaceholderCard";
 
 export function Timeline() {
   const frames = useEditorStore((state) => state.frames);
@@ -20,16 +21,24 @@ export function Timeline() {
         </p>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-        {orderedFrames.map((frame) => {
+        {orderedFrames.map((frame, index) => {
           const transition = transitions.find(
             (item) => item.fromFrameId === frame.id
           );
+          const nextFrame = orderedFrames[index + 1];
+          const showPlaceholder =
+            !transition &&
+            nextFrame &&
+            nextFrame.id.startsWith("placeholder-") &&
+            !frame.id.startsWith("placeholder-");
 
           return (
             <Fragment key={frame.id}>
               <FrameCard frame={frame} />
               {transition && !frame.id.startsWith("placeholder-") ? (
                 <TransitionCard transition={transition} />
+              ) : showPlaceholder ? (
+                <TransitionPlaceholderCard />
               ) : null}
             </Fragment>
           );
