@@ -1,6 +1,7 @@
 "use client";
 
-import { Play, Pause, MonitorSmartphone, Undo2, Redo2, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Play, Pause, MonitorSmartphone, Undo2, Redo2, Sparkles, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -11,6 +12,11 @@ export function EditorHeader() {
   return (
     <header className="flex items-center justify-between rounded-3xl border border-neutral-100 bg-white px-6 py-4 shadow-sm">
       <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild aria-label="返回首页">
+          <Link href="/">
+            <Home className="h-4 w-4" />
+          </Link>
+        </Button>
         <Button
           variant="secondary"
           size="icon"

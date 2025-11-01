@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditorStore } from "@/lib/store/editorStore";
@@ -14,12 +14,14 @@ export function ImageTab() {
   );
   const updateFrame = useEditorStore((state) => state.updateFrame);
 
-  const [note, setNote] = useState(
-    (frame?.metadata?.prompt as string) ?? ""
-  );
+  const [note, setNote] = useState((frame?.metadata?.prompt as string) ?? "");
   const [isReplacing, setIsReplacing] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setNote((frame?.metadata?.prompt as string) ?? "");
+  }, [frame?.id, frame?.metadata?.prompt]);
 
   if (!frame) {
     return (

@@ -9,9 +9,9 @@ type ImageRequestBody = {
   aspectRatio?: string;
 };
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = (await request.json()) as ImageRequestBody;
+    const body = (await req.json()) as ImageRequestBody;
     const prompt = body.prompt?.trim();
 
     if (!prompt) {
@@ -24,23 +24,27 @@ export async function POST(request: Request) {
     const client = new GoogleGenerativeAI(getEnv("GEMINI_API_KEY"));
     const model = client.getGenerativeModel({ model: MODEL_NAME });
 
-    const result = await model.generateContent({
+    const generationConfig =
+      body.aspectRatio !== undefined
+        ? {
+            imageGenerationConfig: { aspectRatio: body.aspectRatio }
+          }
+        : undefined;
+
+    const generationRequest: Record<string, unknown> = {
       contents: [
         {
           role: "user",
           parts: [{ text: prompt }]
         }
-      ],
-      generationConfig: {
-        responseMimeType: "image/png",
-        ...(body.aspectRatio
-          ? {
-              // aspect ratios are supported as hints; non-fatal if invalid.
-              imageGenerationConfig: { aspectRatio: body.aspectRatio }
-            }
-          : {})
-      }
-    });
+      ]
+    };
+
+    if (generationConfig) {
+      generationRequest.generationConfig = generationConfig;
+    }
+
+    const result = await model.generateContent(generationRequest as any);
 
     const inlinePart =
       result.response?.candidates?.[0]?.content?.parts?.find(

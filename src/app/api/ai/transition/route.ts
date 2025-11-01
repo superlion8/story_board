@@ -54,23 +54,38 @@ export async function POST(request: Request) {
     const cfgScale = body.cfgScale ?? 0.5;
     const baseUrl = getOptionalEnv("KLING_API_BASE") ?? KLING_DEFAULT_BASE;
 
+    const startImageBase64 = extractBase64(startImage);
+    const endImageBase64 = extractBase64(endImage);
+
+    const payload: Record<string, unknown> = {
+      model_name: KLING_MODEL,
+      mode,
+      duration: String(duration),
+      prompt,
+      cfg_scale: cfgScale,
+      static_mask: body.staticMask,
+      dynamic_masks: body.dynamicMasks
+    };
+
+    if (startImageBase64) {
+      payload.image_base64 = startImageBase64;
+    } else {
+      payload.image = startImage;
+    }
+
+    if (endImageBase64) {
+      payload.image_tail_base64 = endImageBase64;
+    } else {
+      payload.image_tail = endImage;
+    }
+
     const response = await fetch(`${baseUrl}/v1/videos/image2video`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${createKlingToken()}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model_name: KLING_MODEL,
-        mode,
-        duration: String(duration),
-        prompt,
-        cfg_scale: cfgScale,
-        image: startImage,
-        image_tail: endImage,
-        static_mask: body.staticMask,
-        dynamic_masks: body.dynamicMasks
-      })
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
@@ -97,4 +112,14 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function extractBase64(value: string) {
+  if (value.startsWith("data:")) {
+    const commaIndex = value.indexOf(",");
+    if (commaIndex !== -1) {
+      return value.slice(commaIndex + 1);
+    }
+  }
+  return null;
 }
