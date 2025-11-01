@@ -161,7 +161,10 @@ export function AddFramePanel({ placeholderId }: AddFramePanelProps) {
             ) : null}
           </div>
           {referenceImage ? (
-            <div className="relative h-36 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+            <div
+              className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50"
+              style={{ aspectRatio: "16 / 9" }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={referenceImage} alt="参考图" className="h-full w-full object-cover" />
             </div>

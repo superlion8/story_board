@@ -282,7 +282,10 @@ function FramePreview({ frame, label }: FramePreviewProps) {
   return (
     <div className="space-y-3 rounded-3xl border border-neutral-100 bg-white p-4 text-sm">
       <span className="block text-neutral-500">{label}</span>
-      <div className="relative aspect-video overflow-hidden rounded-2xl bg-neutral-100">
+      <div
+        className="relative overflow-hidden rounded-2xl bg-neutral-100"
+        style={{ aspectRatio: "16 / 9" }}
+      >
         {frame.asset.thumbnailUrl ? (
           <Image
             src={frame.asset.thumbnailUrl}

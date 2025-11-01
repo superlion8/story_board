@@ -131,7 +131,10 @@ export function ImageTab() {
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       <div className="flex flex-col gap-4">
-        <div className="relative aspect-video overflow-hidden rounded-3xl bg-neutral-100">
+        <div
+          className="relative overflow-hidden rounded-3xl bg-neutral-100"
+          style={{ aspectRatio: "16 / 9" }}
+        >
           {frame.asset.url ? (
             <Image
               src={frame.asset.url}
@@ -187,7 +190,10 @@ export function ImageTab() {
             ) : null}
           </div>
           {referenceImage ? (
-            <div className="relative h-36 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+            <div
+              className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50"
+              style={{ aspectRatio: "16 / 9" }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={referenceImage} alt="参考图" className="h-full w-full object-cover" />
             </div>

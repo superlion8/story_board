@@ -53,7 +53,10 @@ export function FrameCard({ frame }: FrameCardProps) {
         </div>
       </div>
       {hasThumbnail ? (
-        <div className="relative h-10 w-16 overflow-hidden rounded-xl bg-neutral-100">
+        <div
+          className="relative w-20 overflow-hidden rounded-xl bg-neutral-100"
+          style={{ aspectRatio: "16 / 9" }}
+        >
           <Image
             src={frame.asset.thumbnailUrl || frame.asset.url}
             alt={`Frame ${frame.order + 1}`}
@@ -62,7 +65,10 @@ export function FrameCard({ frame }: FrameCardProps) {
           />
         </div>
       ) : (
-        <div className="h-10 w-16 rounded-xl border border-dashed border-neutral-300" />
+        <div
+          className="w-20 rounded-xl border border-dashed border-neutral-300"
+          style={{ aspectRatio: "16 / 9" }}
+        />
       )}
     </button>
   );

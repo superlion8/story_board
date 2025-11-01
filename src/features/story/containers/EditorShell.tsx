@@ -1,9 +1,8 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { useEffect } from "react";
 import { Timeline } from "@/features/timeline/Timeline";
 import { EditorWorkspace } from "@/features/story/components/EditorWorkspace";
-import { EditorHeader } from "@/features/story/components/EditorHeader";
 import { useEditorStore } from "@/lib/store/editorStore";
 import { toast } from "sonner";
 
@@ -11,10 +10,9 @@ const SESSION_KEY = "story-board:pending-frame";
 
 type EditorShellProps = {
   storyId: string;
-  headerSlot?: ReactNode;
 };
 
-export function EditorShell({ storyId, headerSlot }: EditorShellProps) {
+export function EditorShell({ storyId }: EditorShellProps) {
   const updateFrame = useEditorStore((state) => state.updateFrame);
   const selectFrame = useEditorStore((state) => state.selectFrame);
 
@@ -67,10 +65,6 @@ export function EditorShell({ storyId, headerSlot }: EditorShellProps) {
       className="flex h-full min-h-screen flex-col gap-6 p-6 md:p-10"
       data-story-id={storyId}
     >
-      <div className="space-y-4">
-        {headerSlot}
-        <EditorHeader />
-      </div>
       <div className="grid flex-1 gap-6 lg:grid-cols-[260px_1fr]">
         <aside className="rounded-3xl border border-neutral-100 bg-white p-5 shadow-sm">
           <Timeline />
